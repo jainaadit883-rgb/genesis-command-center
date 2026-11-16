@@ -47,6 +47,7 @@ export function PlatformPage({ platform, label, icon, helpLines }: PlatformPageP
   const [tearing, setTearing] = useState(false)
   const [patterning, setPatterning] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [setupSteps, setSetupSteps] = useState<string[] | null>(null)
 
   function showToast(type: 'success' | 'error', msg: string) {
     setToast({ type, msg })
@@ -55,14 +56,26 @@ export function PlatformPage({ platform, label, icon, helpLines }: PlatformPageP
 
   async function handleRefresh() {
     setRefreshing(true)
-    await new Promise(r => setTimeout(r, 1200))
-    dispatch({
-      type: 'REFRESH_POSTS',
-      platform,
-      posts: posts.map(p => ({ ...p })),
-    })
-    setRefreshing(false)
-    showToast('success', `${posts.length} posts refreshed. Scores updated.`)
+    setSetupSteps(null)
+    try {
+      const res = await fetch(`/api/posts/${platform}`)
+      const json = await res.json()
+      if (json.needsSetup) {
+        setSetupSteps(json.steps ?? [])
+        setRefreshing(false)
+        return
+      }
+      if (json.posts?.length) {
+        dispatch({ type: 'REFRESH_POSTS', platform, posts: json.posts })
+        showToast('success', `${json.posts.length} real posts loaded from ${label}.`)
+      } else {
+        showToast('error', json.message ?? json.error ?? 'No posts returned. Try again shortly.')
+      }
+    } catch {
+      showToast('error', 'Network error — check your connection and try again.')
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   async function handleTeardowns() {
@@ -109,6 +122,28 @@ export function PlatformPage({ platform, label, icon, helpLines }: PlatformPageP
           }`}
         >
           {toast.msg}
+        </div>
+      )}
+
+      {/* API setup instructions */}
+      {setupSteps && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <p className="text-sm font-semibold text-amber-300">
+              {label} needs an API token to load real posts
+            </p>
+            <button
+              onClick={() => setSetupSteps(null)}
+              className="text-xs text-slate-500 hover:text-slate-300"
+            >
+              ✕
+            </button>
+          </div>
+          <ol className="space-y-1.5 list-decimal list-inside">
+            {setupSteps.map((step, i) => (
+              <li key={i} className="text-xs text-slate-300 leading-relaxed">{step}</li>
+            ))}
+          </ol>
         </div>
       )}
 

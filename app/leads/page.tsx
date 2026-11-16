@@ -71,11 +71,47 @@ export default function LeadsPage() {
   const [drafting, setDrafting] = useState<string | null>(null)
   const [editing, setEditing] = useState<Record<string, string>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [scraping, setScraping] = useState(false)
+  const [upworkSteps, setUpworkSteps] = useState<string[] | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; msg: string } | null>(null)
 
   function showToast(type: 'success' | 'info', msg: string) {
     setToast({ type, msg })
     setTimeout(() => setToast(null), 4000)
+  }
+
+  async function handleScrapeLeads() {
+    setScraping(true)
+    setUpworkSteps(null)
+    try {
+      const res = await fetch('/api/leads')
+      const json = await res.json()
+
+      const incoming: Lead[] = json.leads ?? []
+      const existingIds = new Set(state.leads.map(l => l.id))
+
+      let added = 0
+      for (const lead of incoming) {
+        if (!existingIds.has(lead.id)) {
+          dispatch({ type: 'ADD_LEAD', lead })
+          added++
+        }
+      }
+
+      if (json.upworkNeedsSetup) setUpworkSteps(json.upworkSetupSteps ?? [])
+
+      if (added > 0) {
+        showToast('success', `${added} new lead${added > 1 ? 's' : ''} scraped from Freelancer${json.upworkCount > 0 ? ' + Upwork' : ''}.`)
+      } else if (incoming.length > 0) {
+        showToast('info', 'No new leads — all current results are already in the list.')
+      } else {
+        showToast('info', 'Freelancer returned no results for these queries. Try again shortly.')
+      }
+    } catch {
+      showToast('info', 'Network error while scraping leads. Check your connection.')
+    } finally {
+      setScraping(false)
+    }
   }
 
   async function handleDraftPitch(leadId: string) {
@@ -157,6 +193,35 @@ export default function LeadsPage() {
           People asking for video work. Draft a tailored pitch with AI, review it, then send.
         </p>
       </div>
+
+      {/* Scrape button */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={handleScrapeLeads}
+          disabled={scraping}
+          className="rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          {scraping ? 'Scraping…' : '⬇ Scrape fresh leads'}
+        </button>
+        <span className="text-xs text-slate-500">
+          Pulls real job posts from Freelancer · Upwork (needs API key)
+        </span>
+      </div>
+
+      {/* Upwork setup instructions */}
+      {upworkSteps && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <p className="text-sm font-semibold text-amber-300">Add Upwork leads (optional)</p>
+            <button onClick={() => setUpworkSteps(null)} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
+          </div>
+          <ol className="space-y-1.5 list-decimal list-inside">
+            {upworkSteps.map((s, i) => (
+              <li key={i} className="text-xs text-slate-300 leading-relaxed">{s}</li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="flex flex-wrap gap-3">

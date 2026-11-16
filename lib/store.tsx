@@ -11,7 +11,7 @@ import {
   defaultSavedIdeas,
 } from './data'
 
-const STORAGE_KEY = 'genesis_state_v1'
+const STORAGE_KEY = 'genesis_state_v2'
 
 const initialState: AppState = {
   xPosts: defaultXPosts,
