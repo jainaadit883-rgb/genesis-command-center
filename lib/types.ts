@@ -49,7 +49,7 @@ export interface Experiment {
   notes?: string
 }
 
-export type ContactType = 'email' | 'linkedin_dm' | 'twitter_dm' | 'reddit_dm'
+export type ContactType = 'email' | 'linkedin_dm' | 'twitter_dm' | 'reddit_dm' | 'upwork_bid' | 'freelancer_bid'
 
 export interface Lead {
   id: string

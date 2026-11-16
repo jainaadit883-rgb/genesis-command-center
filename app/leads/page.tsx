@@ -7,13 +7,13 @@ import type { Lead } from '@/lib/types'
 
 const MOCK_PITCHES: Record<string, string> = {
   lead1:
-    "Hi, saw your post about a Hindi explainer video for your ed-tech startup! GENESIS can generate broadcast-quality Hindi videos from a brief — no studio, no crew, no actors. For a 2-minute explainer your budget of ₹20k would be very comfortable, with capacity for revisions. I can send you a demo reel from similar ed-tech launches this week — want to take a look?",
+    "Hi! Saw your Upwork project for Hindi fintech explainer videos. GENESIS generates broadcast-quality Hindi video from a brief — no studio or crew. For 3 videos at 60–90 seconds your budget range works well, with capacity for revisions. I can send a sample fintech explainer in Hindi before you commit — want to take a look?",
   lead2:
-    "Hi! Saw your Reddit post about short reels in Hindi and Marathi for your restaurant chain. GENESIS handles both languages natively — the AI understands cultural food context in Indian regional languages, so the scripts land authentically. For 5 short reels I can get you a quote under ₹15,000 total. Want to see an example from an F&B brand first?",
+    "Hi! Saw your Upwork post for Hindi and Marathi FMCG product reels. GENESIS handles both languages natively and understands Indian consumer culture, so brand messaging lands authentically. For 5 reels I can deliver within budget and send you a sample in both languages first. Interested?",
   lead4:
-    "Hi, saw your post about Tamil and Telugu explainer videos. GENESIS was specifically built for South Indian regional languages — the dialogue sounds natural, not translated. For 10 explainer videos across both languages I can send you a full cost and timeline breakdown. Would a quick call this week work?",
+    "Hi! Saw your Upwork post for consistent Gujarati YouTube content. GENESIS generates natural-sounding Gujarati video from text — 2 per week is completely manageable while maintaining your channel's voice. Happy to produce a pilot episode at no cost so you can see the output first. Want me to send it over?",
   lead5:
-    "Hi! Saw your Reddit post about Gujarati content for your YouTube channel. GENESIS generates natural-sounding Gujarati video content from text — consistent quality every week without a studio setup. Happy to share examples from similar YouTube creators before you commit. Want me to send them over?",
+    "Hi! Saw your Freelancer project for the Odia OTT pilot. GENESIS was built for regional Indian language production at this scale — 6 episodes of 20–25 minutes is exactly the kind of multi-episode project we do best. I can share a production breakdown with timelines and costs, plus a sample scene in Odia. Would a quick call this week work?",
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -33,6 +33,8 @@ const CONTACT_ICON: Record<string, string> = {
   linkedin_dm: '🔗',
   twitter_dm: '𝕏',
   reddit_dm: '◉',
+  upwork_bid: '◈',
+  freelancer_bid: '◎',
 }
 
 const CONTACT_LABEL: Record<string, string> = {
@@ -40,6 +42,8 @@ const CONTACT_LABEL: Record<string, string> = {
   linkedin_dm: 'LinkedIn DM',
   twitter_dm: 'X DM',
   reddit_dm: 'Reddit DM',
+  upwork_bid: 'Upwork proposal',
+  freelancer_bid: 'Freelancer bid',
 }
 
 function buildMailto(lead: Lead): string {
@@ -295,13 +299,23 @@ export default function LeadsPage() {
                           >
                             {copied === lead.id ? 'Copied ✓' : 'Copy pitch'}
                           </button>
-                          {/* Open in email client (only if email contact) */}
+                          {/* Send action — email or platform proposal */}
                           {lead.contactType === 'email' && lead.contactEmail && (
                             <a
                               href={buildMailto(lead)}
                               className="rounded-lg border border-indigo-700 bg-indigo-800/40 hover:bg-indigo-700/60 px-3 py-1.5 text-xs font-medium text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                             >
                               Open in email client ↗
+                            </a>
+                          )}
+                          {(lead.contactType === 'upwork_bid' || lead.contactType === 'freelancer_bid') && (
+                            <a
+                              href={lead.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-lg border border-indigo-700 bg-indigo-800/40 hover:bg-indigo-700/60 px-3 py-1.5 text-xs font-medium text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            >
+                              Submit proposal ↗
                             </a>
                           )}
                           {lead.status === 'drafted' && (

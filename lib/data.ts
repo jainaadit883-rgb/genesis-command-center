@@ -43,6 +43,13 @@ export function generateRatings(post: Omit<ViralPost, 'viralityScore' | 'hitVira
   }
 }
 
+function cleanUrl(p: Omit<ViralPost, 'viralityScore' | 'hitViralTarget'>): string {
+  if (p.platform === 'x') return `https://x.com/${p.handle.replace('@', '')}`
+  if (p.platform === 'reddit') return `https://www.reddit.com/${p.handle}/`
+  // linkedin: deep-link to content search (requires login, but no 404)
+  return `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent('GENESIS AI film India SuperLiving')}`
+}
+
 function computeScores(
   posts: Omit<ViralPost, 'viralityScore' | 'hitViralTarget'>[],
   platform: Platform
@@ -62,8 +69,11 @@ function computeScores(
   }
   return posts.map((p, i) => ({
     ...p,
+    url: cleanUrl(p),
     viralityScore: Math.round((raw[i] / max) * 100),
     hitViralTarget: hitTarget[platform](p.metrics),
+    // pre-compute ratings for all posts that have teardown text
+    teardownRatings: p.teardownRatings ?? (p.teardown ? generateRatings(p) : undefined),
   }))
 }
 
@@ -496,93 +506,91 @@ export const defaultExperiments: Experiment[] = [
 export const defaultLeads: Lead[] = [
   {
     id: 'lead1',
-    platform: 'X',
-    author: '@edtech_founder',
+    platform: 'Upwork',
+    author: 'FinTech Startup — Upwork',
     content:
-      'Need someone to create a 2-min explainer video for my ed-tech startup in Hindi. Budget ₹20k. DM me if interested.',
-    url: 'https://x.com/edtech_founder/status/1',
-    postedAt: '2026-11-13T11:00:00Z',
+      'Looking for a video creator to produce 3 Hindi explainer videos for our fintech app. 60–90 seconds each. Must understand Indian financial audience. Budget: $250–400 per video. AI tools welcome.',
+    url: 'https://www.upwork.com/nx/search/jobs/?q=Hindi+explainer+video&sort=recency',
+    postedAt: '2026-11-14T09:30:00Z',
     status: 'new',
-    scraperSource: 'x.com search: "Hindi video production" "DM me"',
-    contactType: 'twitter_dm',
-    contactHandle: '@edtech_founder',
-    emailSubject: 'Hindi explainer video for your ed-tech launch — GENESIS',
+    scraperSource: 'upwork.com — search: "Hindi explainer video" (posted this week)',
+    contactType: 'upwork_bid',
+    contactHandle: 'upwork.com/jobs/hindi-explainer-fintech',
+    emailSubject: 'Hindi explainer videos for your fintech — GENESIS',
   },
   {
     id: 'lead2',
-    platform: 'Reddit',
-    author: 'u/spiceroute_food',
+    platform: 'Upwork',
+    author: 'FMCG Brand Manager — Upwork',
     content:
-      'Looking for video production for my restaurant chain. Need 5 short reels in Hindi and Marathi. How much would this cost?',
-    url: 'https://reddit.com/r/india/lead2',
-    postedAt: '2026-11-12T14:00:00Z',
+      'Need 5 short product reels (30 sec) in Hindi and Marathi for a new FMCG brand launch. AI-generated video tools welcome. Must have cultural authenticity. Budget: $100–200 per reel.',
+    url: 'https://www.upwork.com/nx/search/jobs/?q=Marathi+Hindi+product+video&sort=recency',
+    postedAt: '2026-11-13T14:00:00Z',
     status: 'new',
-    scraperSource: 'reddit.com/r/india — keyword: "video production" "Hindi"',
-    contactType: 'reddit_dm',
-    contactHandle: 'u/spiceroute_food',
-    emailSubject: 'Hindi + Marathi reels for SpiceRoute — GENESIS can help',
+    scraperSource: 'upwork.com — search: "Marathi Hindi video production"',
+    contactType: 'upwork_bid',
+    contactHandle: 'upwork.com/jobs/fmcg-regional-reels',
+    emailSubject: 'Hindi + Marathi FMCG reels — GENESIS AI production',
   },
   {
     id: 'lead3',
-    platform: 'LinkedIn',
-    author: 'Priya S, Brand Manager',
+    platform: 'Freelancer',
+    author: 'South India E-commerce — Freelancer',
     content:
-      'We\'re launching a new FMCG brand and need 3 product videos with Hindi voiceover. Any recommendations for AI video tools?',
-    url: 'https://linkedin.com/posts/lead3',
-    postedAt: '2026-11-11T09:30:00Z',
+      'We need 10 product explainer videos in Tamil and Telugu for our upcoming product launch. Looking for someone familiar with South Indian consumer culture. Budget: ₹8,000–15,000 per video.',
+    url: 'https://www.freelancer.com/jobs/video-production-1/',
+    postedAt: '2026-11-12T11:00:00Z',
     status: 'drafted',
-    scraperSource: 'linkedin.com search: "Hindi voiceover" "product video"',
-    contactType: 'linkedin_dm',
-    contactHandle: 'linkedin.com/in/priya-s-brand',
-    contactEmail: 'priya.s@fmcgbrand.com',
-    emailSubject: 'Your FMCG launch videos in Hindi — GENESIS',
+    scraperSource: 'freelancer.com — category: Video Production, language: Tamil/Telugu',
+    contactType: 'freelancer_bid',
+    contactHandle: 'freelancer.com/projects/tamil-telugu-explainer',
+    emailSubject: 'Tamil & Telugu explainer videos — GENESIS can deliver 10',
     pitch:
-      'Hi Priya, saw your post about Hindi voiceover videos for your FMCG launch! GENESIS can generate broadcast-quality Hindi product videos from a brief — no studio, no crew. For 3 videos your budget could be under ₹15,000. Happy to share examples from similar FMCG launches — want a quick call this week?',
+      'Hi, saw your Freelancer project for Tamil and Telugu explainer videos! GENESIS was built specifically for South Indian regional languages — the dialogue sounds natural, not translated. We can deliver all 10 videos within your budget with built-in cultural accuracy. Happy to send sample outputs in Tamil first. Want to see them before you decide?',
   },
   {
     id: 'lead4',
-    platform: 'X',
-    author: '@southindia_biz',
+    platform: 'Upwork',
+    author: 'Gujarati YouTuber — Upwork',
     content:
-      'Anyone know good rates for AI-generated explainer videos? Need 10 videos in Tamil and Telugu for our product launch.',
-    url: 'https://x.com/southindia_biz/status/2',
-    postedAt: '2026-11-10T16:00:00Z',
+      'My YouTube channel needs consistent AI-generated video content in Gujarati — 2 videos per week. Looking for a production partner who can maintain voice and style consistency over time.',
+    url: 'https://www.upwork.com/nx/search/jobs/?q=Gujarati+YouTube+video+AI&sort=recency',
+    postedAt: '2026-11-11T16:00:00Z',
     status: 'new',
-    scraperSource: 'x.com search: "Tamil Telugu video" "AI-generated"',
-    contactType: 'twitter_dm',
-    contactHandle: '@southindia_biz',
-    emailSubject: '10 Tamil & Telugu explainer videos — GENESIS rates',
+    scraperSource: 'upwork.com — search: "Gujarati video content" "YouTube"',
+    contactType: 'upwork_bid',
+    contactHandle: 'upwork.com/jobs/gujarati-youtube-weekly',
+    emailSubject: 'Consistent Gujarati YouTube content — GENESIS weekly production',
   },
   {
     id: 'lead5',
-    platform: 'Reddit',
-    author: 'u/gujjubizowner',
+    platform: 'Freelancer',
+    author: 'OTT Production House — Freelancer',
     content:
-      'My YouTube channel needs consistent AI-generated content in Gujarati. What\'s the best tool for this in 2026?',
-    url: 'https://reddit.com/r/india/lead5',
-    postedAt: '2026-11-09T12:00:00Z',
+      'Seeking production partner for a 6-episode pilot in Odia language for OTT distribution. Open to AI-first production approach. Each episode 20–25 mins. Serious inquiries only.',
+    url: 'https://www.freelancer.com/jobs/video-services-1/',
+    postedAt: '2026-11-10T10:00:00Z',
     status: 'new',
-    scraperSource: 'reddit.com/r/india — keyword: "Gujarati content" "AI"',
-    contactType: 'reddit_dm',
-    contactHandle: 'u/gujjubizowner',
-    emailSubject: 'Consistent Gujarati content for your YouTube channel',
+    scraperSource: 'freelancer.com — category: Video Services, keyword: "Odia" "OTT"',
+    contactType: 'freelancer_bid',
+    contactHandle: 'freelancer.com/projects/odia-ott-pilot',
+    emailSubject: 'Odia OTT pilot (6 episodes) — GENESIS AI production',
   },
   {
     id: 'lead6',
-    platform: 'LinkedIn',
-    author: 'Rajan M, Content Head',
+    platform: 'Upwork',
+    author: 'SaaS Company — Upwork',
     content:
-      'Looking for a production partner for our OTT pilot — 6 episodes, all in Odia. Open to AI-first production approaches.',
-    url: 'https://linkedin.com/posts/lead6',
-    postedAt: '2026-11-08T10:00:00Z',
+      'Looking for multilingual video content creator for SaaS product. Need 8 explainer videos across Hindi, Tamil, Telugu, and Kannada. AI tools preferred. Budget: $3,000–5,000 for all 8.',
+    url: 'https://www.upwork.com/nx/search/jobs/?q=multilingual+Indian+language+SaaS+video&sort=recency',
+    postedAt: '2026-11-09T08:30:00Z',
     status: 'sent',
-    scraperSource: 'linkedin.com search: "OTT production" "Odia" "AI"',
-    contactType: 'linkedin_dm',
-    contactHandle: 'linkedin.com/in/rajan-m-content',
-    contactEmail: 'rajan.m@ottplatform.in',
-    emailSubject: 'Odia OTT pilot (6 episodes) — GENESIS production breakdown',
+    scraperSource: 'upwork.com — search: "Hindi Tamil Telugu Kannada video" "SaaS"',
+    contactType: 'upwork_bid',
+    contactHandle: 'upwork.com/jobs/multilingual-saas-explainer',
+    emailSubject: 'Multilingual SaaS explainers (8 videos) — GENESIS proposal',
     pitch:
-      'Hi Rajan, your Odia OTT pilot sounds like exactly the kind of project GENESIS was built for. We\'ve produced multi-episode regional language content before — happy to share a production breakdown for 6 episodes with timelines and costs. Would a 20-minute intro call work this week?',
+      'Hi, saw your Upwork post for multilingual SaaS explainers across 4 Indian languages. GENESIS was built for exactly this — natural-sounding Hindi, Tamil, Telugu, and Kannada from one brief, with consistent terminology across all 8 videos. Within your $3,000–5,000 budget you get broadcast-ready outputs with 2 revision rounds. Can I send sample outputs in each language this week?',
   },
 ]
 
