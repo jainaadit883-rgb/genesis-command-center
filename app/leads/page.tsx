@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { HelpToggle } from '@/components/HelpToggle'
+import type { Lead } from '@/lib/types'
 
 const MOCK_PITCHES: Record<string, string> = {
   lead1:
@@ -27,10 +28,45 @@ const STATUS_COLOR: Record<string, string> = {
   sent: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
 }
 
+const CONTACT_ICON: Record<string, string> = {
+  email: '✉',
+  linkedin_dm: '🔗',
+  twitter_dm: '𝕏',
+  reddit_dm: '◉',
+}
+
+const CONTACT_LABEL: Record<string, string> = {
+  email: 'Email',
+  linkedin_dm: 'LinkedIn DM',
+  twitter_dm: 'X DM',
+  reddit_dm: 'Reddit DM',
+}
+
+function buildMailto(lead: Lead): string {
+  const to = lead.contactEmail ?? ''
+  const subject = encodeURIComponent(lead.emailSubject ?? 'Introduction from GENESIS')
+  const body = encodeURIComponent(lead.pitch ?? '')
+  return `mailto:${to}?subject=${subject}&body=${body}`
+}
+
+function ContactBadge({ lead }: { lead: Lead }) {
+  if (!lead.contactType) return null
+  const icon = CONTACT_ICON[lead.contactType] ?? '→'
+  const label = CONTACT_LABEL[lead.contactType] ?? lead.contactType
+  const handle = lead.contactHandle ?? lead.contactEmail ?? ''
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+      <span aria-hidden="true">{icon}</span>
+      {label}: <span className="text-slate-300">{handle}</span>
+    </span>
+  )
+}
+
 export default function LeadsPage() {
   const { state, dispatch } = useStore()
   const [drafting, setDrafting] = useState<string | null>(null)
   const [editing, setEditing] = useState<Record<string, string>>({})
+  const [copied, setCopied] = useState<string | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'info'; msg: string } | null>(null)
 
   function showToast(type: 'success' | 'info', msg: string) {
@@ -41,10 +77,12 @@ export default function LeadsPage() {
   async function handleDraftPitch(leadId: string) {
     setDrafting(leadId)
     await new Promise(r => setTimeout(r, 1200))
+    const lead = state.leads.find(l => l.id === leadId)
     const pitch = MOCK_PITCHES[leadId] ?? "Hi! I saw your post about video production. GENESIS generates broadcast-quality Hindi and regional language video content from a brief — no studio or crew needed. Happy to send examples that match your use case. What language(s) do you need?"
-    dispatch({ type: 'UPDATE_LEAD', id: leadId, updates: { status: 'drafted', pitch } })
+    const subject = lead?.emailSubject ?? 'Introduction from GENESIS'
+    dispatch({ type: 'UPDATE_LEAD', id: leadId, updates: { status: 'drafted', pitch, emailSubject: subject } })
     setDrafting(null)
-    showToast('info', 'Pitch drafted. Review it below, edit if needed, then mark it sent.')
+    showToast('info', 'Pitch drafted. Review it below, edit if needed, then send.')
   }
 
   function handleEditPitch(leadId: string, text: string) {
@@ -63,6 +101,16 @@ export default function LeadsPage() {
   function handleMarkSent(leadId: string) {
     dispatch({ type: 'UPDATE_LEAD', id: leadId, updates: { status: 'sent' } })
     showToast('success', 'Lead marked as contacted. Great — keep track of replies!')
+  }
+
+  async function handleCopy(leadId: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(leadId)
+      setTimeout(() => setCopied(null), 2000)
+    } catch {
+      showToast('info', 'Copy failed — select the text manually.')
+    }
   }
 
   const newCount = state.leads.filter(l => l.status === 'new').length
@@ -94,8 +142,8 @@ export default function LeadsPage() {
             <HelpToggle
               lines={[
                 'People who posted publicly asking for video production work — your warmest inbound leads.',
-                'Click "Draft pitch with AI" to get a tailored pitch for each lead based on what they asked for.',
-                'Review the pitch, edit it if needed, then click "Mark as sent" once you\'ve reached out.',
+                'Each lead shows which website was scraped and the best way to contact them (DM or email).',
+                'Click "Draft pitch with AI" to get a tailored pitch. Review, edit, then send via the buttons below.',
                 'Only contact people who shared their details publicly. Do not use scraped private info.',
               ]}
             />
@@ -160,9 +208,27 @@ export default function LeadsPage() {
                       month: 'short',
                     })}
                   </span>
+                  <a
+                    href={lead.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto text-xs text-indigo-400 hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+                  >
+                    View post →
+                  </a>
                 </div>
 
+                {/* Scraper source */}
+                {lead.scraperSource && (
+                  <p className="text-xs text-slate-600 italic">
+                    Scraped from: {lead.scraperSource}
+                  </p>
+                )}
+
                 <p className="text-sm text-slate-300 leading-relaxed">{lead.content}</p>
+
+                {/* Contact method */}
+                <ContactBadge lead={lead} />
 
                 {/* Actions */}
                 {lead.status === 'new' && (
@@ -177,6 +243,15 @@ export default function LeadsPage() {
 
                 {lead.status !== 'new' && lead.pitch && (
                   <div className="rounded-xl border border-slate-700 bg-slate-800 p-4 space-y-3">
+                    {/* Subject line */}
+                    {lead.emailSubject && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide shrink-0">
+                          Subject
+                        </span>
+                        <span className="text-xs text-slate-300">{lead.emailSubject}</span>
+                      </div>
+                    )}
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                       Pitch
                     </p>
@@ -206,13 +281,29 @@ export default function LeadsPage() {
                     ) : (
                       <>
                         <p className="text-sm text-slate-300 leading-relaxed">{lead.pitch}</p>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => handleEditPitch(lead.id, lead.pitch!)}
                             className="rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                           >
                             Edit pitch
                           </button>
+                          {/* Copy pitch button */}
+                          <button
+                            onClick={() => handleCopy(lead.id, lead.pitch!)}
+                            className="rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          >
+                            {copied === lead.id ? 'Copied ✓' : 'Copy pitch'}
+                          </button>
+                          {/* Open in email client (only if email contact) */}
+                          {lead.contactType === 'email' && lead.contactEmail && (
+                            <a
+                              href={buildMailto(lead)}
+                              className="rounded-lg border border-indigo-700 bg-indigo-800/40 hover:bg-indigo-700/60 px-3 py-1.5 text-xs font-medium text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            >
+                              Open in email client ↗
+                            </a>
+                          )}
                           {lead.status === 'drafted' && (
                             <button
                               onClick={() => handleMarkSent(lead.id)}

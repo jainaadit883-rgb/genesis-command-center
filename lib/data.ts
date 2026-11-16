@@ -1,4 +1,47 @@
-import type { Platform, ViralPost, Experiment, Lead, SavedIdea } from './types'
+import type { Platform, ViralPost, Experiment, Lead, SavedIdea, TeardownRatings } from './types'
+
+export function generateRatings(post: Omit<ViralPost, 'viralityScore' | 'hitViralTarget'> | ViralPost): TeardownRatings {
+  const { metrics, content, platform } = post
+  const totalEng = metrics.likes + metrics.comments + metrics.shares
+  const engRate = metrics.views > 0 ? totalEng / metrics.views : 0
+
+  const hookWords = ['hot take', 'we just', 'i made', 'watch this', 'honest', 'real talk', 'nobody is', 'can you tell', 'quiz', 'spoiler']
+  const hookScore = Math.min(10, 5 + hookWords.filter(w => content.toLowerCase().includes(w)).length * 1.5 + (content.length < 160 ? 1 : 0))
+
+  const isDemo = /demo|watch|made|generated|created|built/.test(content.toLowerCase())
+  const isThread = /🧵|thread|here's|step/.test(content.toLowerCase())
+  const isList = /\d\s+(ways|things|reasons|steps)/.test(content.toLowerCase())
+  const isComparison = /vs|compare|versus|difference/.test(content.toLowerCase())
+  const formatType = isThread ? 'Thread' : isDemo ? 'Demo' : isList ? 'List' : isComparison ? 'Comparison' : 'Post'
+  const formatScore = isThread ? 8 : isDemo ? 9 : isList ? 7 : isComparison ? 8 : 5
+
+  const triggerWords: Record<string, number> = { surprise: 9, disbelief: 8, curiosity: 7, excitement: 8, aspiration: 7 }
+  const hasPrice = /₹|cost|free|budget/.test(content)
+  const hasClaim = /first|only|never|no one|nobody/.test(content.toLowerCase())
+  const triggerScore = Math.min(10, 5 + (hasPrice ? 2 : 0) + (hasClaim ? 2 : 0) + (isDemo ? 1 : 0))
+  const triggerLabel = hasPrice ? 'Surprise (cost)' : hasClaim ? 'Disbelief (bold claim)' : isDemo ? 'Excitement' : 'Curiosity'
+
+  const distribScore = platform === 'linkedin' ? 7 : platform === 'reddit' ? 6 : metrics.shares > 10000 ? 9 : metrics.shares > 5000 ? 8 : 6
+
+  const mechScore = isThread ? 9 : platform === 'reddit' ? 8 : metrics.comments > 5000 ? 9 : metrics.shares > 10000 ? 9 : 7
+  const mechLabel = isThread ? 'Thread reshares' : platform === 'reddit' ? 'Community upvotes + cross-posts' : 'Organic retweets + communities'
+
+  const engScore = Math.min(10, Math.round(engRate * 500 + 3))
+
+  const hasGenesis = /genesis/.test(content.toLowerCase())
+  const hasSignup = /beta|sign.?up|access|link/.test(content.toLowerCase())
+  const convScore = hasGenesis && hasSignup ? 10 : hasGenesis ? 8 : hasSignup ? 7 : 5
+
+  return {
+    openingHook: { score: Math.round(hookScore), note: `${Math.round(hookScore) >= 8 ? 'Strong' : 'Moderate'} hook`, detail: 'What made someone stop scrolling?' },
+    contentFormat: { score: formatScore, note: formatType, detail: 'Demo, controversy, humour, tutorial, experiment?' },
+    emotionalTrigger: { score: Math.round(triggerScore), note: triggerLabel, detail: 'Surprise, curiosity, excitement, disbelief?' },
+    firstDistributor: { score: distribScore, note: platform === 'linkedin' ? 'Professional network' : platform === 'reddit' ? 'Community post' : 'Creator account', detail: 'Who initially amplified it?' },
+    distributionMechanism: { score: mechScore, note: mechLabel, detail: 'Reposts, comments, communities, influencers?' },
+    engagement: { score: Math.min(10, engScore), note: `${(engRate * 100).toFixed(1)}% eng rate`, detail: 'Views, likes, comments, shares, upvotes' },
+    conversionPotential: { score: convScore, note: convScore >= 8 ? 'High — direct CTA to GENESIS' : convScore >= 6 ? 'Medium — implied product' : 'Low — topic awareness only', detail: 'Would someone actually try the tool?' },
+  }
+}
 
 function computeScores(
   posts: Omit<ViralPost, 'viralityScore' | 'hitViralTarget'>[],
@@ -460,6 +503,10 @@ export const defaultLeads: Lead[] = [
     url: 'https://x.com/edtech_founder/status/1',
     postedAt: '2026-11-13T11:00:00Z',
     status: 'new',
+    scraperSource: 'x.com search: "Hindi video production" "DM me"',
+    contactType: 'twitter_dm',
+    contactHandle: '@edtech_founder',
+    emailSubject: 'Hindi explainer video for your ed-tech launch — GENESIS',
   },
   {
     id: 'lead2',
@@ -470,6 +517,10 @@ export const defaultLeads: Lead[] = [
     url: 'https://reddit.com/r/india/lead2',
     postedAt: '2026-11-12T14:00:00Z',
     status: 'new',
+    scraperSource: 'reddit.com/r/india — keyword: "video production" "Hindi"',
+    contactType: 'reddit_dm',
+    contactHandle: 'u/spiceroute_food',
+    emailSubject: 'Hindi + Marathi reels for SpiceRoute — GENESIS can help',
   },
   {
     id: 'lead3',
@@ -480,6 +531,11 @@ export const defaultLeads: Lead[] = [
     url: 'https://linkedin.com/posts/lead3',
     postedAt: '2026-11-11T09:30:00Z',
     status: 'drafted',
+    scraperSource: 'linkedin.com search: "Hindi voiceover" "product video"',
+    contactType: 'linkedin_dm',
+    contactHandle: 'linkedin.com/in/priya-s-brand',
+    contactEmail: 'priya.s@fmcgbrand.com',
+    emailSubject: 'Your FMCG launch videos in Hindi — GENESIS',
     pitch:
       'Hi Priya, saw your post about Hindi voiceover videos for your FMCG launch! GENESIS can generate broadcast-quality Hindi product videos from a brief — no studio, no crew. For 3 videos your budget could be under ₹15,000. Happy to share examples from similar FMCG launches — want a quick call this week?',
   },
@@ -492,6 +548,10 @@ export const defaultLeads: Lead[] = [
     url: 'https://x.com/southindia_biz/status/2',
     postedAt: '2026-11-10T16:00:00Z',
     status: 'new',
+    scraperSource: 'x.com search: "Tamil Telugu video" "AI-generated"',
+    contactType: 'twitter_dm',
+    contactHandle: '@southindia_biz',
+    emailSubject: '10 Tamil & Telugu explainer videos — GENESIS rates',
   },
   {
     id: 'lead5',
@@ -502,6 +562,10 @@ export const defaultLeads: Lead[] = [
     url: 'https://reddit.com/r/india/lead5',
     postedAt: '2026-11-09T12:00:00Z',
     status: 'new',
+    scraperSource: 'reddit.com/r/india — keyword: "Gujarati content" "AI"',
+    contactType: 'reddit_dm',
+    contactHandle: 'u/gujjubizowner',
+    emailSubject: 'Consistent Gujarati content for your YouTube channel',
   },
   {
     id: 'lead6',
@@ -512,6 +576,11 @@ export const defaultLeads: Lead[] = [
     url: 'https://linkedin.com/posts/lead6',
     postedAt: '2026-11-08T10:00:00Z',
     status: 'sent',
+    scraperSource: 'linkedin.com search: "OTT production" "Odia" "AI"',
+    contactType: 'linkedin_dm',
+    contactHandle: 'linkedin.com/in/rajan-m-content',
+    contactEmail: 'rajan.m@ottplatform.in',
+    emailSubject: 'Odia OTT pilot (6 episodes) — GENESIS production breakdown',
     pitch:
       'Hi Rajan, your Odia OTT pilot sounds like exactly the kind of project GENESIS was built for. We\'ve produced multi-episode regional language content before — happy to share a production breakdown for 6 episodes with timelines and costs. Would a 20-minute intro call work this week?',
   },

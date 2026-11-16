@@ -42,19 +42,19 @@ function reducer(state: AppState, action: AppAction): AppState {
         xPosts:
           action.platform === 'x'
             ? state.xPosts.map(p =>
-                p.id === action.postId ? { ...p, teardown: action.teardown } : p
+                p.id === action.postId ? { ...p, teardown: action.teardown, teardownRatings: action.ratings } : p
               )
             : state.xPosts,
         redditPosts:
           action.platform === 'reddit'
             ? state.redditPosts.map(p =>
-                p.id === action.postId ? { ...p, teardown: action.teardown } : p
+                p.id === action.postId ? { ...p, teardown: action.teardown, teardownRatings: action.ratings } : p
               )
             : state.redditPosts,
         linkedinPosts:
           action.platform === 'linkedin'
             ? state.linkedinPosts.map(p =>
-                p.id === action.postId ? { ...p, teardown: action.teardown } : p
+                p.id === action.postId ? { ...p, teardown: action.teardown, teardownRatings: action.ratings } : p
               )
             : state.linkedinPosts,
       }

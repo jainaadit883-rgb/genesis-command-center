@@ -1,5 +1,21 @@
 export type Platform = 'x' | 'reddit' | 'linkedin'
 
+export interface TeardownRating {
+  score: number  // 1–10
+  note: string
+  detail?: string
+}
+
+export interface TeardownRatings {
+  openingHook: TeardownRating
+  contentFormat: TeardownRating
+  emotionalTrigger: TeardownRating
+  firstDistributor: TeardownRating
+  distributionMechanism: TeardownRating
+  engagement: TeardownRating
+  conversionPotential: TeardownRating
+}
+
 export interface ViralPost {
   id: string
   platform: Platform
@@ -17,6 +33,7 @@ export interface ViralPost {
   viralityScore: number
   hitViralTarget: boolean
   teardown?: string
+  teardownRatings?: TeardownRatings
 }
 
 export interface Experiment {
@@ -32,6 +49,8 @@ export interface Experiment {
   notes?: string
 }
 
+export type ContactType = 'email' | 'linkedin_dm' | 'twitter_dm' | 'reddit_dm'
+
 export interface Lead {
   id: string
   platform: string
@@ -41,6 +60,11 @@ export interface Lead {
   postedAt: string
   pitch?: string
   status: 'new' | 'drafted' | 'sent'
+  scraperSource?: string
+  contactType?: ContactType
+  contactHandle?: string
+  contactEmail?: string
+  emailSubject?: string
 }
 
 export interface SavedIdea {
@@ -66,7 +90,7 @@ export interface AppState {
 
 export type AppAction =
   | { type: 'REFRESH_POSTS'; platform: Platform; posts: ViralPost[] }
-  | { type: 'ADD_TEARDOWN'; platform: Platform; postId: string; teardown: string }
+  | { type: 'ADD_TEARDOWN'; platform: Platform; postId: string; teardown: string; ratings: TeardownRatings }
   | { type: 'SET_PATTERN'; platform: Platform; summary: string }
   | { type: 'ADD_EXPERIMENT'; experiment: Experiment }
   | { type: 'UPDATE_EXPERIMENT'; id: string; updates: Partial<Experiment> }

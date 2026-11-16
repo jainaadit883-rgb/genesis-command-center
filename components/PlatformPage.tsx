@@ -5,6 +5,7 @@ import { PostCard } from './PostCard'
 import { HelpToggle } from './HelpToggle'
 import { Tooltip } from './Tooltip'
 import { useStore } from '@/lib/store'
+import { generateRatings } from '@/lib/data'
 import type { Platform, ViralPost } from '@/lib/types'
 
 const MOCK_PATTERNS: Record<Platform, string> = {
@@ -69,12 +70,13 @@ export function PlatformPage({ platform, label, icon, helpLines }: PlatformPageP
     setTearing(true)
     const topPosts = [...posts].sort((a, b) => b.viralityScore - a.viralityScore).slice(0, 8)
     for (const post of topPosts) {
-      if (!post.teardown) {
+      if (!post.teardown && !post.teardownRatings) {
         await new Promise(r => setTimeout(r, 300))
         const mockTeardown =
           MOCK_PATTERNS[platform].split('.')[0] +
           '. This specific post amplified that pattern through its opening hook and the specificity of its claim.'
-        dispatch({ type: 'ADD_TEARDOWN', platform, postId: post.id, teardown: mockTeardown })
+        const ratings = generateRatings(post)
+        dispatch({ type: 'ADD_TEARDOWN', platform, postId: post.id, teardown: mockTeardown, ratings })
       }
     }
     setTearing(false)
